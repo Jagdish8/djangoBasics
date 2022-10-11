@@ -10,15 +10,15 @@ from threading import Thread
 import json
 from ..models import Data
 
-@api_view(['POST'])
-def postAllInValidData(request):
+@api_view(['GET'])
+def getAllInValidData(request):
   
     def perform_web_requests(addresses, no_workers):
         class Worker(Thread):
             def __init__(self, request_queue):
                 Thread.__init__(self)
                 self.queue = request_queue
-                self.results = []
+                self.results = set()
 
             def run(self):
                 while True:
@@ -28,8 +28,7 @@ def postAllInValidData(request):
                     response = urlopen(content)
                     data_json = json.loads(response.read())
                     for each in data_json["Results"]:
-                        # data = CarModelSerializer(data = each)
-                        self.results.append(each)
+                        self.results.add(each["Model_ID"])
                     self.queue.task_done()
 
         # Create queue and add addresses
@@ -52,9 +51,9 @@ def postAllInValidData(request):
             worker.join()
 
         # Combine results from all workers
-        r = []
+        r = set()
         for worker in workers:
-            r.extend(worker.results)
+            r.update(worker.results)
         return r
 
     wantedUrls = []
@@ -70,30 +69,5 @@ def postAllInValidData(request):
     wantedResults = perform_web_requests(wantedUrls, 10)
     unwantedResults = perform_web_requests(unWantedUrls, 2)
 
-    ans = []
-    real_ans = Data()
-    real_ans.Count = 100
-    real_ans.save()
-    for i in wantedResults:
-        flag = False
-        for j in unwantedResults:
-            if(i.is_valid() and j.is_valid()):
-                if(i["Model_ID"] == j["Model_ID"]):
-                    flag = True
-                    break
-        if(not flag):
-            # i.save()
-            print(i)
-            real_ans.Results.add(i)
-            ans.append(i)
-
-    # se = DataSerializer(data = real_ans)
-    # print(se)
-    # print("HI")
-    # if(se.is_valid()):
-        # se.save()
-        # print(se.data)
-    print(real_ans)
-    return Response("SAVED DATA",status=status.HTTP_201_CREATED)
-    return Response(se.errors, status=status.HTTP_400_BAD_REQUEST)
+    return Response(list(wantedResults-unwantedResults),status=status.HTTP_201_CREATED)
 

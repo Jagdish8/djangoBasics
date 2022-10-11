@@ -1,6 +1,6 @@
 from django.urls import path
-from .views.CRUD import postAllInValidData
+from .views.CRUD import getAllInValidData
 
 urlpatterns = [
-    path('postAllInValidData/',postAllInValidData),
+    path('getAllInValidData/',getAllInValidData),
 ]
